@@ -8,6 +8,9 @@ import java.io.FileWriter;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static java.lang.Integer.parseInt;
 
@@ -48,11 +51,12 @@ public class PlayerSkeleton {
 	/********************************* End of multipliers *********************************/
 
 	private static boolean visualMode = false;
-	private static final int DATA_SIZE = 30;
-	private static final int TURNS_LIMIT = 5000;//Integer.MAX_VALUE;
+	private static final int DATA_SIZE = 300;
+	private static final int TURNS_LIMIT = Integer.MAX_VALUE;
 	private static final int SAMPLING_INTERVAL = 100;
+	private static final int REPETITIONS = 8;
 	private static GeneticAlgorithm geneticAlgorithm;
-
+    static int score = 0;
 	//implement this function to have a working system
 	/**
 	 * Picks the move with the highest value.
@@ -109,23 +113,54 @@ public class PlayerSkeleton {
 		geneticAlgorithm = new GeneticAlgorithm(populationMultipliers);
 		multiplierWeights = populationMultipliers.get(0);
 		while(counter-- > 0) {
-			State s = new State();
-			int score = 0;
+            score = 0;
+            ExecutorService executor = Executors.newWorkStealingPool();
 
-			if (visualMode) {
-				visualize(s);
-			} else {
-				PlayerSkeleton p = new PlayerSkeleton();
-				while (!s.hasLost() && (s.getTurnNumber() < TURNS_LIMIT)) {
-					s.makeMove(p.pickMove(s, s.legalMoves()));
-					if (s.getTurnNumber() % SAMPLING_INTERVAL == 0) {
-						score += getScore(s);
-					}
-				}
-			}
+            Callable task = () -> {
+                String threadName = Thread.currentThread().getName();
+                System.out.println("Hello " + threadName);
+                State s = new State();
+                Integer scoreSum = 0;
+                if (visualMode) {
+                    visualize(s);
+                } else {
+                    PlayerSkeleton p = new PlayerSkeleton();
+                    while (!s.hasLost() && (s.getTurnNumber() < TURNS_LIMIT)) {
+                        s.makeMove(p.pickMove(s, s.legalMoves()));
+                        if (s.getTurnNumber() % SAMPLING_INTERVAL == 0) {
+                            scoreSum += getScore(s);
+                        }
+                    }
+                }
+                System.out.println("Row Cleared: " + s.getRowsCleared());
 
-            System.out.println("Row Cleared: " + s.getRowsCleared());
-            geneticAlgorithm.sendScore(multiplierWeights, Math.max(score, 1)); // positive scores only
+                return "" + scoreSum;
+            };
+
+            List<Callable<String>> callables = new ArrayList<>();
+
+            for (int i = 0; i < REPETITIONS; i++) {
+                callables.add(task);
+            }
+
+            try {
+                executor.invokeAll(callables)
+                        .stream()
+                        .map(future -> {
+                            try {
+                                return future.get();
+                            } catch (Exception e) {
+                                throw new IllegalStateException(e);
+                            }
+                        }).forEach((result) -> {
+                            score += parseInt(result);
+                            System.out.println(result);
+                         });
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            geneticAlgorithm.sendScore(multiplierWeights, Math.max(score / REPETITIONS, 1)); // positive scores only
             maxScore = Math.max(maxScore, score);
             minScore = Math.min(minScore, score);
             sum += score;
@@ -255,7 +290,7 @@ public class PlayerSkeleton {
 
 
 	/********************************* Parameter weight optimization *********************************/
-	private static final String PARAM_FILE_NAME = "twelvemillion.txt";
+	private static final String PARAM_FILE_NAME = "3.txt";
 
 	/**
          * Sets parameter multiplierWeights for the current iteration. Parameters stored in parameters.txt in same directory as

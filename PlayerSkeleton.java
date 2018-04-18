@@ -1,8 +1,5 @@
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 import java.io.FileWriter;
 import java.io.FileReader;
@@ -18,7 +15,8 @@ public class PlayerSkeleton {
 
 
 	/********************************* Multipliers to determine value of simulated move *********************************/
-    private static final int NUM_PARAMETERS = 14;
+	private static final int NUM_TILES = 7;
+	private static final int NUM_PARAMETERS = 15 + NUM_TILES;
     private static final int ROWS_CLEARED_MULT_INDEX = 0;
     private static final int GLITCH_COUNT_MULT_INDEX = 1;
     private static final int BUMPINESS_MULT_INDEX = 2;
@@ -33,28 +31,30 @@ public class PlayerSkeleton {
     private static final int COL_TRANSITIONS_INDEX = 11;
     private static final int BALANCE_INDEX = 12;
     private static final int IDEAL_INDEX = 13;
+    private static final int DISTRIBUTION_INDEX = 14;
     private static final int DEFAULT_GENERATION_SIZE = 100;
 
 	// Heavily prioritise objective of row clearing. Other Multipliers used for tiebreakers.
 	// initialized to default values
-	private static double[] multiplierWeights = {0.5f, -0.1f, -01.f, -0.5f, -0.1f, 0.1f, 0.1f, 0.2f, 0.2f, 0.3f, 0.1f, 0.2f, 0.2f, 0.2f};
-	private static String DEFAULT_PARAMETERS = "0.1 0.1 0.1 0.1 0.1 0 0 0 0 0 0 0 0 0";
+	private static double[] multiplierWeights = {0.5f, -0.1f, -01.f, -0.5f, -0.1f, 0.1f, 0.1f, 0.2f, 0.2f, 0.3f, 0.1f, 0.2f, 0.2f, 0.2f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f};
+	private static String DEFAULT_PARAMETERS = "0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 0.1 1 1 1 1 1 1 1";
 	private static List<double[]> populationMultipliers;
-
+	private static TileDistribution tileDistribution;
 
     private static String[] multiplierNames = {
             "ROWS_CLEARED_MULT", "GLITCH_COUNT_MUL", "BUMPINESS_MUL", "TOTAL_HEIGHT_MUL", "MAX_HEIGHT_MUL", "VERTICAL_HOLES_MUL",
             "SUM_OF_WELLS_MUL", "MAX_WELL_DEPTH_MUL", "BLOCKS_MUL", "WEIGHTED_BLOCKS_MUL", "ROW_TRANSITIONS_MUL",
-            "COL_TRANSITIONS_MUL", "BALANCE_MUL", "IDEAL_MUL"
+            "COL_TRANSITIONS_MUL", "BALANCE_MUL", "IDEAL_MUL", "DISTRIBUTION_MUL", "J_MUL", "I_MUL", "Z_MUL", "L_MUL",
+            "O_MUL", "T_MUL", "S_MUL"
 	};
 
 	/********************************* End of multipliers *********************************/
 
 	private static boolean visualMode = false;
-	private static final int DATA_SIZE = 300;
+	private static final int DATA_SIZE = 1000;
 	private static final int TURNS_LIMIT = Integer.MAX_VALUE;
 	private static final int SAMPLING_INTERVAL = 100;
-	private static final int REPETITIONS = 8;
+	private static final int REPETITIONS = 3;
 	private static GeneticAlgorithm geneticAlgorithm;
     static int score = 0;
 	//implement this function to have a working system
@@ -115,16 +115,16 @@ public class PlayerSkeleton {
 		while(counter-- > 0) {
             score = 0;
             ExecutorService executor = Executors.newWorkStealingPool();
-
+            int selection = (int) (Math.random() * State.distributions.length);
             Callable task = () -> {
-                String threadName = Thread.currentThread().getName();
-                System.out.println("Hello " + threadName);
-                State s = new State();
+                tileDistribution = new TileDistribution();
+                State s = new State(selection);
                 Integer scoreSum = 0;
                 if (visualMode) {
                     visualize(s);
                 } else {
                     PlayerSkeleton p = new PlayerSkeleton();
+                    tileDistribution.increment(s.getNextPiece());
                     while (!s.hasLost() && (s.getTurnNumber() < TURNS_LIMIT)) {
                         s.makeMove(p.pickMove(s, s.legalMoves()));
                         if (s.getTurnNumber() % SAMPLING_INTERVAL == 0) {
@@ -154,7 +154,6 @@ public class PlayerSkeleton {
                             }
                         }).forEach((result) -> {
                             score += parseInt(result);
-                            System.out.println(result);
                          });
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -187,6 +186,7 @@ public class PlayerSkeleton {
         PlayerSkeleton p = new PlayerSkeleton();
 
         while (!s.hasLost()) {
+            tileDistribution.increment(s.getNextPiece());
             s.makeMove(p.pickMove(s, s.legalMoves()));
 
             if (visualMode) {
@@ -290,7 +290,7 @@ public class PlayerSkeleton {
 
 
 	/********************************* Parameter weight optimization *********************************/
-	private static final String PARAM_FILE_NAME = "3.txt";
+	private static final String PARAM_FILE_NAME = "kinks.txt";
 
 	/**
          * Sets parameter multiplierWeights for the current iteration. Parameters stored in parameters.txt in same directory as
@@ -515,7 +515,7 @@ public class PlayerSkeleton {
 
 
 
-            return multiplierWeights[ROWS_CLEARED_MULT_INDEX] * rowsCleared
+            return (multiplierWeights[ROWS_CLEARED_MULT_INDEX] * rowsCleared
                     + multiplierWeights[GLITCH_COUNT_MULT_INDEX] * getGlitchCount()
                     + multiplierWeights[BUMPINESS_MULT_INDEX] * getBumpiness()
                     + multiplierWeights[TOTAL_HEIGHT_MULT_INDEX] * getTotalHeight()
@@ -528,7 +528,9 @@ public class PlayerSkeleton {
                     + multiplierWeights[ROW_TRANSITIONS_INDEX] * getRowTransitions()
                     + multiplierWeights[COL_TRANSITIONS_INDEX] * getColTransitions()
                     + multiplierWeights[BALANCE_INDEX] * getImbalance()
-                    + multiplierWeights[IDEAL_INDEX] * getIdealPositions();
+                    + multiplierWeights[IDEAL_INDEX] * getIdealPositions())
+                    * multiplierWeights[DISTRIBUTION_INDEX] * getDistributionWeight(nextPiece)
+                    * multiplierWeights[NUM_PARAMETERS - NUM_TILES + nextPiece];
         }
 
         /**
@@ -816,6 +818,10 @@ public class PlayerSkeleton {
 
                 return true;
             }
+        }
+
+        private double getDistributionWeight(int tile) {
+            return tileDistribution.getFreq(tile);
         }
 
         /**

@@ -4,7 +4,8 @@ import java.util.*;
  * A genetic algorithm that is used to evolve the Tetris AI and find the best weight multiplier for each feature
  */
 public class GeneticAlgorithm {
-    private static final int NUM_CHROMOSOMES = 14;
+    private static final int NUM_TILES = 7;
+    private static final int NUM_CHROMOSOMES = 15 + NUM_TILES;
     private static final double PERCENTAGE_OFFSPRING = 0.3f;
     private static final double MUTATION_AMOUNT = 0.2f;
     // we want the first mutation to occur with higher probability to get out of local maximas
@@ -132,8 +133,8 @@ public class GeneticAlgorithm {
      */
     public void sendScore(double[] weights, double score) {
         String s = arrayToString(chromosomes.get(currentCandidate));
-        String string = "Generation " + generation + "; Candidate " + (currentCandidate + 1) + ": " + s + " Score = " + score;
-        System.out.println(string);
+//        String string = "Generation " + generation + "; Candidate " + (currentCandidate + 1) + ": " + s + " Score = " + score;
+//        System.out.println(string);
         scores.add(currentCandidate, new Candidate(weights, score));
         currentCandidate++;
         if (scores.size() == population) {

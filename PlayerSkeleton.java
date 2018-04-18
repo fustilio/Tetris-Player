@@ -115,8 +115,8 @@ public class PlayerSkeleton {
 		while(counter-- > 0) {
             score = 0;
             ExecutorService executor = Executors.newWorkStealingPool();
-//            int selection = (int) (Math.random() * State.distributions.length);
-            int selection = 0;
+            int selection = (int) (Math.random() * State.distributions.length);
+//            int selection = 0;
             Callable task = () -> {
                 tileDistribution = new TileDistribution();
                 State s = new State(selection);

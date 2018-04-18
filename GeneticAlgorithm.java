@@ -108,15 +108,17 @@ public class GeneticAlgorithm {
         // Update the fittest candidate with previous generation's best candidate
         int maxIndex = 0;
         double maxScore = 0;
+        double totalScore = 0;
         for (int i = 0; i < scores.size(); i++) {
             double currScore = scores.get(i).getFitnessScore();
             if (currScore > maxScore) {
                 maxIndex = i;
                 maxScore = currScore;
             }
+            totalScore += currScore;
         }
         System.out.println("local Generation " + generation + " candid. " + (maxIndex+1) + " chosen (max score: " + maxScore + "): " + arrayToString(chromosomes.get(maxIndex)));
-
+        System.out.println("Average Score: " + totalScore / 100);
         if (maxScore > fittestScore) {
             fittestScore = maxScore;
             for (int i = 0; i < NUM_CHROMOSOMES ; i++) {
@@ -194,8 +196,7 @@ public class GeneticAlgorithm {
             // Mutation
             boolean mutate = rnd.nextDouble() < mutationRate;
             if (mutate) {
-
-                change = mutationAmount * (rnd.nextDouble() * 2 - 1);
+                change = mutationAmount * (rnd.nextDouble() * 2 - 1) * Math.exp(mutant[k]);
             }
 
             mutant[k] = candidate[k] + change;

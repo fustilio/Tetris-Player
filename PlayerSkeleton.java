@@ -115,7 +115,8 @@ public class PlayerSkeleton {
 		while(counter-- > 0) {
             score = 0;
             ExecutorService executor = Executors.newWorkStealingPool();
-            int selection = (int) (Math.random() * State.distributions.length);
+//            int selection = (int) (Math.random() * State.distributions.length);
+            int selection = 0;
             Callable task = () -> {
                 tileDistribution = new TileDistribution();
                 State s = new State(selection);
@@ -124,15 +125,15 @@ public class PlayerSkeleton {
                     visualize(s);
                 } else {
                     PlayerSkeleton p = new PlayerSkeleton();
-                    tileDistribution.increment(s.getNextPiece());
                     while (!s.hasLost() && (s.getTurnNumber() < TURNS_LIMIT)) {
+                        tileDistribution.increment(s.getNextPiece());
                         s.makeMove(p.pickMove(s, s.legalMoves()));
                         if (s.getTurnNumber() % SAMPLING_INTERVAL == 0) {
                             scoreSum += getScore(s);
                         }
                     }
                 }
-                System.out.println("Row Cleared: " + s.getRowsCleared());
+//                System.out.println("Row Cleared: " + s.getRowsCleared());
 
                 return "" + scoreSum;
             };

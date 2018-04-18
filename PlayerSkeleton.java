@@ -631,6 +631,7 @@ public class PlayerSkeleton {
                     else if(isWell(r, c)) wellCount++;
                 }
             }
+
             return wellCount;
         }
 
@@ -648,6 +649,7 @@ public class PlayerSkeleton {
                 }
                 maxDepth = (currDepth > maxDepth)? currDepth : maxDepth;
             }
+
             return maxDepth;
         }
 
@@ -676,6 +678,7 @@ public class PlayerSkeleton {
                     }
                 }
             }
+
             return blocks;
         }
 

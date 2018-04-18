@@ -64,10 +64,10 @@ public class GeneticAlgorithm {
         // Pair up two winners at a time
         int offspringNumber = (int) (((1 - PERCENTAGE_OFFSPRING) * population + 1) / 2) + 1;
         for (int i = 0; i < offspringNumber; i++) {
-            Candidate winner1 = scores.get(population - i - 1);
-            Candidate winner2 = scores.get(population - i - 2);
+            Candidate candidate1 = scores.get(population - i - 1);
+            Candidate candidate2 = scores.get(population - i - 2);
 
-            double[] offspring = mutateByCrossoverCandidates(winner1, winner2);
+            double[] offspring = mutateByCrossoverCandidates(candidate1, candidate2);
 
             for (int j = 0; j < 2; j++) {
                 offspring_population.add(

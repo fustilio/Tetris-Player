@@ -53,7 +53,7 @@ public class PlayerSkeleton {
         return ss.getMoveValue(move);
     }
     public static void main(String[] args) {
-        setVisualMode();
+//        setVisualMode();
 
         executeDataSet();
     }
@@ -63,17 +63,17 @@ public class PlayerSkeleton {
      */
     private static void executeDataSet() {
         State s = new State();
-//        if (visualMode) {
-//            visualize(s);
-//        } else {
+        if (visualMode) {
+            visualize(s);
+        } else {
             PlayerSkeleton p = new PlayerSkeleton();
             while (!s.hasLost()) {
                 s.makeMove(p.pickMove(s, s.legalMoves()));
                 // uncomment the 3 lines below to see the number of rows cleared so far after every 10000 turns
-                if (s.getTurnNumber() % 10000 == 0) {
-                    System.out.println("Rows cleared so far: " + s.getRowsCleared());
-                }
-//            }
+//                if (s.getTurnNumber() % 10000 == 0) {
+//                    System.out.println("Rows cleared so far: " + s.getRowsCleared());
+//                }
+            }
         }
 
         System.out.println("You have completed " + s.getRowsCleared() + " rows.");
